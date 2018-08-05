@@ -1,0 +1,15 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "AbacoS3PathMessage",
+    "description": "Contains an s3-canonical path and optional routing information",
+    "type": "object",
+    "properties": {
+        "uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "'uri' is an object-store equivalent to a file path."
+        },
+        "routings" : {}
+    },
+    "required": ["uri"]
+}

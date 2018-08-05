@@ -1,0 +1,17 @@
+---
+source:
+  bucket: s3://uploads
+  posix_path: /corral/s3/ingest/uploads
+destination:
+  bucket: agave://data-sd2e-community/uploads
+  posix_path: /work/projects/SD2E-Community/prod/data/uploads
+  grants:
+    - username: world
+      pem: READ
+      recursive: False
+linked_reactors: ~
+logs:
+  level: DEBUG
+  token: ~
+slack:
+  webhook: ~
