@@ -29,14 +29,12 @@ def get_agave_dest(dest_path, settings):
 def get_posix_mkdir(dest_path, settings, validate_path=True):
     '''Get a command in params[] form to make destination directory'''
     dest_parent = os.path.dirname(dest_path)
-    command_params = []
     if validate_path:
         if os.path.isdir(dest_parent):
-            return command_params
-    else:
-        if not os.path.isdir(dest_parent):
-            command_params = ['mkdir', '-p', dest_parent]
-            return command_params
+            return []
+
+    command_params = ['mkdir', '-p', dest_parent]
+    return command_params
 
 
 def get_posix_copy(src, dest, settings, validate_path=True):
@@ -44,12 +42,12 @@ def get_posix_copy(src, dest, settings, validate_path=True):
     command_params = []
     if validate_path:
         if not os.path.isfile(src):
-            return command_params
+            return []
         if not os.path.isdir(os.path.dirname(dest)):
-            return command_params
-    else:
-        command_params = ['cp', '-af', src, dest]
-        return command_params
+            return []
+
+    command_params = ['cp', '-af', src, dest]
+    return command_params
 
 
 def get_agave_parents(posix_dest_path, posix_base, bucket):
@@ -101,6 +99,7 @@ def main():
 
     # Rename m.Key so it makes semantic sense elsewhere in the code
     s3_uri = m.get('uri')
+    r.logger.debug(s3_uri)
 
     # Map POSIX source and destination
     posix_src, posix_dest = get_posix_paths(s3_uri, r.settings)
@@ -111,11 +110,13 @@ def main():
     # TODO Implement routings
 
     # Create POSIX directory path at destination
-    cmdset = get_posix_mkdir(posix_dest, r.settings)
+    do_validate = not r.local
+    cmdset = get_posix_mkdir(posix_dest, r.settings, do_validate)
     created_path = None
-    if cmdset is not []:
+    if cmdset != []:
+        r.logger.debug('Process: "{}"'.format(cmdset))
         if r.local is True:
-            r.logger.debug('Process: "{}"'.format(cmdset))
+            created_path = os.path.dirname(posix_dest)
         else:
             response = process.run(cmdset)
             if response.return_code > 0:
@@ -127,7 +128,8 @@ def main():
                 created_path = cmdset[2]
 
     # Do copy with forced overwrite
-    cmdset = get_posix_copy(posix_src, posix_dest, r.settings)
+    do_validate = not r.local
+    cmdset = get_posix_copy(posix_src, posix_dest, r.settings, do_validate)
     copied_path = None
     if cmdset is not []:
         if r.local is True:
@@ -142,13 +144,17 @@ def main():
                     cmdset[0], response.elapsed_msec))
                 copied_path = cmdset[3]
 
+
     # Grant Agave permissions on the copied file
     for grant in r.settings.destination.grants:
-        try:
-            resilient_files_pems(r.client, agave_dest, grant.username,
-                                 grant.pem, grant.recursive)
-        except Exception:
-            r.logger.warning('Grant failed for {}'.format(agave_dest))
+        r.logger.debug('Grant {} to {} on {}'.format(
+            grant.pem, grant.username, agave_dest))
+        if r.local is False:
+            try:
+                resilient_files_pems(r.client, agave_dest, grant.username,
+                                    grant.pem, grant.recursive)
+            except Exception:
+                r.logger.warning('Grant failed for {}'.format(agave_dest))
 
     # Agave permission grants on created parent directories
     if created_path is not None:
@@ -166,6 +172,8 @@ def main():
                         r.logger.warning('Grant failed for {}'.format(ag_uri))
 
     # TODO Kick off downstream Reactors
+
+    r.on_success('Task completed')
 
 if __name__ == '__main__':
     main()
