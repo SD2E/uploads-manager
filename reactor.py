@@ -113,7 +113,7 @@ def main():
     do_validate = not r.local
     cmdset = get_posix_mkdir(posix_dest, r.settings, do_validate)
     created_path = None
-    if cmdset != []:
+    if len(cmdset) > 0:
         r.logger.debug('Process: "{}"'.format(cmdset))
         if r.local is True:
             created_path = os.path.dirname(posix_dest)
@@ -131,7 +131,7 @@ def main():
     do_validate = not r.local
     cmdset = get_posix_copy(posix_src, posix_dest, r.settings, do_validate)
     copied_path = None
-    if cmdset is not []:
+    if len(cmdset) > 0:
         if r.local is True:
             r.logger.debug('Process: "{}"'.format(cmdset))
         else:
@@ -172,6 +172,14 @@ def main():
                         r.logger.warning('Grant failed for {}'.format(ag_uri))
 
     # TODO Kick off downstream Reactors
+    # capture-fixity
+    actor_id = r.settings.linked_reactors.get(
+        'capture-fixity', {}).get('id', None)
+    message = {'uri': agave_dest}
+    try:
+        r.send_message(actor_id, message=message)
+    except Exception as exc:
+        r.on_failure("Failed to launch 'capture-fixity'", exc)
 
     r.on_success('Task completed')
 

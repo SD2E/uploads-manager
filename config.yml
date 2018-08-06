@@ -9,7 +9,10 @@ destination:
     - username: world
       pem: READ
       recursive: False
-linked_reactors: ~
+linked_reactors:
+  capture-fixity:
+    id: gloqkNWaZLqjZ
+    ignore_err: false
 logs:
   level: DEBUG
   token: ~
