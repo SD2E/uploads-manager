@@ -1,7 +1,9 @@
 """
-Copy from (TACC) S3 storage to Agave-managed storage
+Copy from (TACC) S3 storage to Agave-managed storage and route filename to
+downstream processors based on rules defined in config.yml#routings
 """
 import json
+import re
 import os
 from attrdict import AttrDict
 from reactors.runtime import Reactor, agaveutils, process
@@ -107,8 +109,6 @@ def main():
     # Map the Agave path for destination
     agave_dest = get_agave_dest(posix_dest, r.settings)
 
-    # TODO Implement routings
-
     # Create POSIX directory path at destination
     do_validate = not r.local
     cmdset = get_posix_mkdir(posix_dest, r.settings, do_validate)
@@ -127,7 +127,7 @@ def main():
                     cmdset[0], response.elapsed_msec))
                 created_path = cmdset[2]
 
-    # Do copy with forced overwrite
+    # Do POSIX copy with forced overwrite
     do_validate = not r.local
     cmdset = get_posix_copy(posix_src, posix_dest, r.settings, do_validate)
     copied_path = None
@@ -144,8 +144,7 @@ def main():
                     cmdset[0], response.elapsed_msec))
                 copied_path = cmdset[3]
 
-
-    # Grant Agave permissions on the copied file
+    # Do Agave permission grants on the copied file
     for grant in r.settings.destination.grants:
         r.logger.debug('Grant {} to {} on {}'.format(
             grant.pem, grant.username, agave_dest))
@@ -156,7 +155,7 @@ def main():
             except Exception:
                 r.logger.warning('Grant failed for {}'.format(agave_dest))
 
-    # Agave permission grants on created parent directories
+    # Do Agave permission grants on created parent directories
     if created_path is not None:
         agave_path_list = get_agave_parents(
             created_path, r.settings.destination.posix_path,
@@ -171,17 +170,21 @@ def main():
                     except Exception:
                         r.logger.warning('Grant failed for {}'.format(ag_uri))
 
-    # TODO Kick off downstream Reactors
-    # capture-fixity
-    actor_id = r.settings.linked_reactors.get(
-        'capture-fixity', {}).get('id', None)
+    # Kick off downstream Reactors by filename glob match
     message = {'uri': agave_dest}
-    try:
-        r.send_message(actor_id, message=message)
-    except Exception as exc:
-        r.on_failure("Failed to launch 'capture-fixity'", exc)
+    for routename, globs in r.settings.routings.items():
+        actor_id = r.settings.linked_reactors.get(routename, {}).get('id')
+        for glob in globs:
+            if re.compile(glob).search(agave_dest):
+                try:
+                    r.send_message(actor_id, message=message)
+                    break
+                except Exception as exc:
+                    r.on_failure('Failed to launch {}:{} for {}'.format(
+                        routename, actor_id, agave_dest), exc)
 
-    r.on_success('Task completed')
+
+    r.on_success('Completed in {} usec'.format(r.elapsed()))
 
 if __name__ == '__main__':
     main()

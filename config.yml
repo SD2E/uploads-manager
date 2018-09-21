@@ -9,12 +9,20 @@ destination:
     - username: world
       pem: READ
       recursive: False
+routings:
+  capture-fixity:
+    - "."
+  etl-pipeline-support:
+    - ".json$"
 linked_reactors:
   capture-fixity:
-    id: gloqkNWaZLqjZ
+    id: EqvOPJoZB5wEV
+    ignore_err: false
+  etl-pipeline-support:
+    id: kORGmrmKxaOY3
     ignore_err: false
 logs:
-  level: DEBUG
+  level: INFO
   token: ~
 slack:
   webhook: ~

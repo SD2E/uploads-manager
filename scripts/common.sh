@@ -5,6 +5,7 @@ UNDER_MACOS=0
 CI_PLATFORM=
 CI_UID=$(id -u ${USER})
 CI_GID=$(id -g ${USER})
+CI_CONTAINER_NAME="test-${RANDOM}-${RANDOM}"
 
 function die(){
     echo "[ERROR] $1"
@@ -60,8 +61,8 @@ function random_hex() {
   else
     length_hex=$1
   fi
-  cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w $length_hex | head -n 1
-
+  hexx=$(cat /dev/urandom | env LC_CTYPE=C tr -dc 'a-zA-Z0-9' | fold -w $length_hex | head -n 1)
+  echo -n $hexx
 }
 
 function read_reactor_rc() {
@@ -73,6 +74,11 @@ function read_reactor_rc() {
       source ${REACTOR_RC}
   else
       log "No reactors config file ${REACTOR_RC} found"
+  fi
+
+  if ((DOCKER_USE_COMMIT_HASH));
+  then
+    DOCKER_IMAGE_VERSION=$(git rev-parse --short HEAD)
   fi
 
   CONTAINER_IMAGE="$DOCKER_HUB_ORG/${DOCKER_IMAGE_TAG}:${DOCKER_IMAGE_VERSION}"
