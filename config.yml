@@ -22,7 +22,7 @@ linked_reactors:
     id: 6rgbzrjRKoBDk
     ignore_err: false
 logs:
-  level: INFO
+  level: DEBUG
   token: ~
 slack:
   webhook: ~
