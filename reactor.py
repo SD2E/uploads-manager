@@ -101,6 +101,7 @@ def main():
 
     # Rename m.Key so it makes semantic sense elsewhere in the code
     s3_uri = m.get('uri')
+    only_sync = m.get('sync', False)
     r.logger.debug(s3_uri)
 
     # Map POSIX source and destination
@@ -108,6 +109,9 @@ def main():
 
     # Map the Agave path for destination
     agave_dest = get_agave_dest(posix_dest, r.settings)
+
+    if os.path.exists(posix_dest) and only_sync is True:
+        r.on_success('Destination exists and event mode==sync: Skipping file copy and event triggering.')
 
     # Create POSIX directory path at destination
     do_validate = not r.local
@@ -184,7 +188,7 @@ def main():
                         routename, actor_id, agave_dest), exc)
 
 
-    r.on_success('Completed in {} usec'.format(r.elapsed()))
+        r.on_success('Completed in {} usec'.format(r.elapsed()))
 
 if __name__ == '__main__':
     main()

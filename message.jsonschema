@@ -9,7 +9,13 @@
             "format": "uri",
             "description": "'uri' is an object-store equivalent to a file path."
         },
-        "routings" : {}
+        "sync": {
+            "type": "boolean",
+            "value": false
+        },
+        "routings": {}
     },
-    "required": ["uri"]
+    "required": [
+        "uri"
+    ]
 }
