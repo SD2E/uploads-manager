@@ -13,7 +13,12 @@
             "type": "boolean",
             "value": false
         },
-        "routings": {}
+        "routings": {},
+        "generated_by": {
+            "type": "array",
+            "$items": "string",
+            "description": "One or more job or pipeline UUIDs"
+        }
     },
     "required": [
         "uri"

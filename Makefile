@@ -8,6 +8,7 @@ PREF_SHELL ?= "bash"
 ACTOR_ID ?=
 NOCLEANUP ?= 0
 GITREF=$(shell git rev-parse --short HEAD)
+REACTOR_ENV_FILE="env.json"
 
 .PHONY: tests container tests-local tests-reactor tests-deployed
 .SILENT: tests container tests-local tests-reactor tests-deployed
@@ -19,18 +20,18 @@ image:
 	abaco deploy -R -t $(GITREF) $(ABACO_DEPLOY_OPTS)
 
 shell:
-	bash $(SCRIPT_DIR)/run_container_process.sh bash
+	REACTOR_ENV_FILE="env.json" USEPWD=1 bash $(SCRIPT_DIR)/run_container_process.sh bash
 
 tests: tests-pytest tests-local
 
-tests-pytest:
-	bash $(SCRIPT_DIR)/run_container_process.sh python3 -m "pytest" $(PYTEST_DIR) $(PYTEST_OPTS)
+tests-pytest: image
+	REACTOR_ENV_FILE="env.json" USEPWD=1 bash $(SCRIPT_DIR)/run_container_process.sh python3 -m "pytest" $(PYTEST_DIR) $(PYTEST_OPTS)
 
 tests-integration:
 	true
 
-tests-local:
-	bash $(SCRIPT_DIR)/run_container_message.sh tests/data/local-message-01.json
+tests-local: image
+	REACTOR_ENV_FILE="env.json" USEPWD=1 bash $(SCRIPT_DIR)/run_container_message.sh tests/data/local-message-01.json
 
 tests-deployed:
 	echo "not implemented"

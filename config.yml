@@ -26,3 +26,7 @@ logs:
   token: ~
 slack:
   webhook: ~
+batch:
+  size: 1000
+  sleep_duration: 10
+  randomize_sleep: true

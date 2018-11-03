@@ -40,20 +40,28 @@ if [ ! -f "${AGAVE_CREDS}/current" ]; then
     log "No API credentials found in ${AGAVE_CREDS}"
 fi
 
+# Read Docker envs from secrets.json
+if [ ! -f "${REACTOR_SECRETS_FILE}" ]; then
+    die "No secrets.json found"
+fi
+# This emulates Abaco's environment-setting behavior
+log "Reading in container secrets file..."
+DOCKER_ENVS=$(python ${DIR}/secrets_to_docker_envs.py ${REACTOR_SECRETS_FILE})
+# Set the Reactor.local flag. Also ensures DOCKER_ENVS is not empty
+DOCKER_ENVS="-e LOCALONLY=1 ${DOCKER_ENVS}"
+
+# Read additional envs from env.json
+if [ -f "${REACTOR_ENV_FILE}" ]; then
+    # This allow overrides of some env used to set up various systems
+    log "Reading in container env file..."
+    CONTAINER_ENVS=$(python ${DIR}/secrets_to_docker_envs.py ${REACTOR_ENV_FILE})
+    DOCKER_ENVS="-e LOCALONLY=1 ${DOCKER_ENVS} ${CONTAINER_ENVS}"
+fi
+
 # Emphemeral directory
-#  Can be specified with REACTOR_JOB_DIR
-#  Can be turned off with REACTOR_NO_TMP=1
 WD=${PWD}
-TEMP=""
-if ((REACTOR_USE_TMP )); then
-    if [ ! -z "${REACTOR_JOB_DIR}" ]; then
-        rm -rf "${REACTOR_JOB_DIR}";
-        mkdir -p "${REACTOR_JOB_DIR}"
-        TEMP=${REACTOR_JOB_DIR}
-    else
-        TEMP=`mktemp -d $PWD/tmp.XXXXXX`
-    fi
-    WD=${TEMP}
+if ((! USEPWD)); then
+    WD=`mktemp -d $PWD/tmp.XXXXXX`
 fi
 log "Working directory: ${WD}"
 
@@ -63,29 +71,21 @@ if [ -d "${AGAVE_CREDS}" ]; then
     MOUNTS="$MOUNTS -v ${AGAVE_CREDS}:/root/.agave:rw"
 fi
 
-envopts=""
-# API_KEY=$(jq -r ._REACTOR_SLACK_WEBHOOK ${DIR}/../secrets.json)
-# envopts="${envopts} -e _REACTOR_SLACK_WEBHOOK=$API_KEY"
-
-if ((! REACTOR_LOCALONLY )); then
-    envopts="${envopts} -e LOCALONLY=1"
-fi
-
 # Tweak config for Docker depending on if we're running under CI
 dockeropts="${REACTOR_RUN_OPTS}"
 detect_ci
 if ((UNDER_CI)); then
-  # If running a Dockerized process with a volume mount
-  # written files will be owned by root and unwriteable by
-  # the CI user. We resolve this by setting the group, which
-  # is the same approach we use in the container runner
-  # that powers container-powered Agave jobs
-  dockeropts="-t ${dockeropts} --user=0:${CI_GID}"
+    # If running a Dockerized process with a volume mount
+    # written files will be owned by root and unwriteable by
+    # the CI user. We resolve this by setting the group, which
+    # is the same approach we use in the container runner
+    # that powers container-powered Agave jobs
+    DOCKER_ENVS="-t ${DOCKER_ENVS} --user=0:${CI_GID}"
 else
-  dockeropts="-it ${dockeropts}"
+    DOCKER_ENVS="-it ${DOCKER_ENVS}"
 fi
 
-docker run ${dockeropts} ${envopts} ${MOUNTS} ${CONTAINER_IMAGE} ${@}
+docker run ${DOCKER_ENVS} ${MOUNTS} ${CONTAINER_IMAGE} ${@}
 DOCKER_RUN_EXIT_CODE="$?"
 
 # Clean up: Set permissions and ownership on volume mount
