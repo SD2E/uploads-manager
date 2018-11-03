@@ -73,6 +73,7 @@ def main():
     def cmpfiles(posix_src, posix_dest, mtime=True, size=True, cksum=False):
         # Existence
         if not (os.path.exists(posix_src) and os.path.exists(posix_dest)):
+            print('EXISTENCE')
             return False
 
         # Both files exist, so harvest POSIX stat
@@ -87,10 +88,12 @@ def main():
             # for clock skew but at present we assume source and
             # destination filesystems are managed by the same host
             if stat_src.st_mtime > stat_dest.st_mtime:
+                print('MODTIME')
                 return False
         # Size (conditional)
         if size:
             if stat_src.st_size != stat_dest.st_size:
+                print('SIZE')
                 return False
         if cksum:
             # Not implemented
@@ -105,7 +108,7 @@ def main():
     # Is the source physically a FILE?
     if sh.isfile(posix_src):
         # Check existence and identify
-        if only_sync is True and cmpfiles(posix_src, posix_dest):
+        if only_sync is True and cmpfiles(posix_src, posix_dest, mtime=False):
             # if os.path.exists(posix_dest) and only_sync is True:
             r.logger.info('Source and destination do not differ')
         else:
@@ -129,7 +132,7 @@ def main():
                 # Implements sync behavior
                 posix_src = sh.mapped_catalog_path(procpath)
                 posix_dest = ah.mapped_posix_path(os.path.join('/', procpath))
-                if (only_sync is False or cmpfiles(posix_src, posix_dest) is False):
+                if (only_sync is False or cmpfiles(posix_src, posix_dest, mtime=False) is False):
                     r.logger.debug('Try to launch task for {}'.format(procpath))
                     actor_id = r.uid
                     resp = dict()

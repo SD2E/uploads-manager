@@ -8,7 +8,7 @@ pipeline {
     environment {
         CLIENT_PREFIX     = "copy-s3-uploads"
         ACTOR_ID_PROD     = 'emEE3Jrpp8p45'
-        ACTOR_ID_STAGING  = 'emEE3Jrpp8p45'
+        ACTOR_ID_STAGING  = '5z3XQ6jevX5Ay'
         ACTOR_WORKERS = 6
         PYTEST_OPTS       = '-s -vvv'
         ABACO_DEPLOY_OPTS = ''
