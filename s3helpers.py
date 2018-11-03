@@ -8,6 +8,7 @@ from builtins import *
 
 import re
 import os
+import sys
 
 
 class S3HelperException(Exception):
@@ -76,7 +77,9 @@ class S3Helper(object):
 
     def exists(self, path, bucket=None):
         # Determine if a catalog-relative path exists
-
+        # Determine if a catalog-relative path is a file
+        if bucket is None:
+            bucket = self.BUCKET
         checkpath = path
         if checkpath.startswith('/'):
             checkpath = checkpath[1:]
@@ -98,6 +101,7 @@ class S3Helper(object):
             bucket = self.BUCKET
         try:
             testpath = self.mapped_catalog_path(path, bucket)
+            print('ISFILE?', self.mapped_catalog_path(path))
             if os.path.exists(testpath) and os.path.isfile(testpath):
                 return True
             else:
@@ -157,6 +161,8 @@ class S3Helper(object):
             raise S3HelperException('Function failed', exc)
 
     def listdir_s3_posix(self, path, recurse=True, bucket=None, directories=True, current_listing=[]):
+        if bucket is None:
+            bucket = self.BUCKET
         abspath = self.mapped_catalog_path(path, bucket)
         listing = list()
         for dirname, dirnames, filenames in os.walk(abspath):

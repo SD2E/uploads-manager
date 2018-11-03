@@ -57,11 +57,11 @@ def main():
     # Map POSIX source and destination
     s3_bucket, srcpath, srcfile = sh.from_s3_uri(s3_uri)
     print(s3_bucket, srcpath, srcfile)
-    s3_full_relpath = os.path.join(srcpath, srcfile)
-    ag_full_relpath = os.path.join(s3_bucket, s3_full_relpath)
+    s3_full_relpath = os.path.join(s3_bucket, srcpath, srcfile)
+    ag_full_relpath = s3_full_relpath
     ag_uri = 'agave://data-sd2e-community/' + ag_full_relpath
     print(ag_full_relpath, ag_uri)
-    posix_src = sh.mapped_posix_path(s3_full_relpath)
+    posix_src = sh.mapped_catalog_path(s3_full_relpath)
     posix_dest = ah.mapped_posix_path(os.path.join('/', ag_full_relpath))
     # agave_full_path = agave_dest
     to_process = []
@@ -76,7 +76,7 @@ def main():
             r.logger.info('Destination exists and sync=true: Skipping...')
         else:
             r.logger.info('Copying {}'.format(posix_src))
-            copyfile(r, posix_src, ag_uri)
+            copyfile(r, posix_src, posix_dest, ag_uri)
             routemsg(r, ag_uri)
     else:
         # LIST DIR; FIRE OFF TASKS FOR FILES

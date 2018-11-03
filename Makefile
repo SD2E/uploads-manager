@@ -30,8 +30,13 @@ tests-pytest: image
 tests-integration:
 	true
 
-tests-local: image
+tests-local: image tests-local-file tests-local-dir
+
+tests-local-file:
 	REACTOR_ENV_FILE="env.json" USEPWD=1 bash $(SCRIPT_DIR)/run_container_message.sh tests/data/local-message-01.json
+
+tests-local-dir:
+	REACTOR_ENV_FILE="env.json" USEPWD=1 bash $(SCRIPT_DIR)/run_container_message.sh tests/data/local-message-02.json
 
 tests-deployed:
 	echo "not implemented"
