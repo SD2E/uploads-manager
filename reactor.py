@@ -12,6 +12,7 @@ from pprint import pprint
 from time import sleep
 from random import random, shuffle
 from attrdict import AttrDict
+from datetime import datetime, timedelta
 
 from datacatalog.agavehelpers import AgaveHelper, AgaveHelperException
 
@@ -43,7 +44,7 @@ def main():
 
     # Use JSONschema-based message validator
     if not r.validate_message(m):
-        r.on_failure('Invalid message received', None)
+        r.on_failure('Received invalid message', None)
 
     # Rename m.Key so it makes semantic sense elsewhere in the code
     s3_uri = m.get('uri')
@@ -69,22 +70,55 @@ def main():
     print('POSIX_SRC:', posix_src)
     print('POSIX_DEST:', posix_dest)
 
+    def cmpfiles(posix_src, posix_dest, mtime=True, size=True, cksum=False):
+        # Existence
+        if not (os.path.exists(posix_src) and os.path.exists(posix_dest)):
+            return False
+
+        # Both files exist, so harvest POSIX stat
+        stat_src = os.stat(posix_src)
+        stat_dest = os.stat(posix_dest)
+
+        # Modification time (conditional)
+        if mtime:
+            # Mtime on source should never be more recent than
+            # destination, as destination is a result of a copy
+            # operation. We might need to add ability to account
+            # for clock skew but at present we assume source and
+            # destination filesystems are managed by the same host
+            if stat_src.st_mtime > stat_dest.st_mtime:
+                return False
+        # Size (conditional)
+        if size:
+            if stat_src.st_size != stat_dest.st_size:
+                return False
+        if cksum:
+            # Not implemented
+            # TODO Implement very fast hasher instead of sha256 for sync
+            #      1. https://github.com/kalafut/py-imohash
+            #      2. https://pypi.org/project/xxhash/
+            raise NotImplementedError('Checksum comparison is not yet implemented')
+
+        # None of the False tests returned so we can safely return True
+        return True
+
     # Is the source physically a FILE?
     if sh.isfile(posix_src):
-        # PROCESS THE FILE
-        if os.path.exists(posix_dest) and only_sync is True:
-            r.logger.info('Destination exists and sync=true: Skipping...')
+        # Check existence and identify
+        if only_sync is True and cmpfiles(posix_src, posix_dest):
+            # if os.path.exists(posix_dest) and only_sync is True:
+            r.logger.info('Source and destination do not differ')
         else:
             r.logger.info('Copying {}'.format(posix_src))
             copyfile(r, posix_src, posix_dest, ag_uri)
             routemsg(r, ag_uri)
     else:
         # LIST DIR; FIRE OFF TASKS FOR FILES
-        r.logger.debug('Recursively listing {}'.format(posix_src))
+        r.logger.debug('Listing {}'.format(posix_src))
         to_process = sh.listdir(posix_src, recurse=True, bucket=s3_bucket, directories=False)
         pprint(to_process)
-        r.logger.info('Found {} files'.format(len(to_process)))
-        r.logger.debug('Messaging self with new processing tasks')
+        r.logger.info('Found {} potential sync targets'.format(len(to_process)))
+        r.logger.debug('Messaging self with sync tasks')
 
         # to_list was constructed in listing order, recursively; adding a shuffle
         # spreads the processing evenly over all files
@@ -92,28 +126,35 @@ def main():
         batch_sub = 0
         for procpath in to_process:
             try:
-                r.logger.debug('Self, please process {}'.format(procpath))
-                actor_id = r.uid
-                resp = dict()
-                message = {'uri': 's3://' + s3_bucket + '/' + procpath,
-                           'generated_by': generated_by}
-                if r.local is False:
-                    resp = r.send_message(actor_id, message, retryMaxAttempts=3)
-                else:
-                    pprint(message)
-                batch_sub += 1
-                if batch_sub > r.settings.batch.size:
-                    batch_sub = 0
-                    if r.settings.batch.randomize_sleep:
-                        sleep(random() * r.settings.batch.sleep_duration)
+                # Implements sync behavior
+                posix_src = sh.mapped_catalog_path(procpath)
+                posix_dest = ah.mapped_posix_path(os.path.join('/', procpath))
+                if (only_sync is False or cmpfiles(posix_src, posix_dest) is False):
+                    r.logger.debug('Try to launch task for {}'.format(procpath))
+                    actor_id = r.uid
+                    resp = dict()
+                    message = {'uri': 's3://' + '/' + procpath,
+                               'generated_by': generated_by,
+                               'sync': only_sync}
+                    if r.local is False:
+                        resp = r.send_message(actor_id, message, retryMaxAttempts=3)
                     else:
-                        sleep(r.settings.batch.sleep_duration)
-                if 'executionId' in resp:
-                    r.logger.debug('Dispatched indexing task for {} in execution {}'.format(
-                        procpath, resp['executionId']))
+                        pprint(message)
+                    batch_sub += 1
+                    if batch_sub > r.settings.batch.size:
+                        batch_sub = 0
+                        if r.settings.batch.randomize_sleep:
+                            sleep(random() * r.settings.batch.sleep_duration)
+                        else:
+                            sleep(r.settings.batch.sleep_duration)
+                    if 'executionId' in resp:
+                        r.logger.debug('Processing {} with task {}'.format(
+                            procpath, resp['executionId']))
+                else:
+                    r.logger.debug('Source and destination do not differ.')
             except Exception as exc:
                 r.logger.critical(
-                    'Failed to dispatch indexing task for {}'.format(agave_full_path))
+                    'Failed to dispatch task for {}'.format(ag_full_relpath))
 
 
 if __name__ == '__main__':

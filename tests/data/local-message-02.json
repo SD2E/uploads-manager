@@ -1,3 +1,4 @@
 {
-    "uri": "s3://uploads/emerald/201808"
+    "uri": "s3://uploads/emerald/201808",
+    "sync": true
 }
