@@ -105,14 +105,14 @@ def main():
         # None of the False tests returned so we can safely return True
         return True
 
-    # Is the source physically a FILE?
+    # Is the source physically a FILE and is it different or absent at target?
     if sh.isfile(posix_src):
         # Check existence and identify
         if only_sync is True and cmpfiles(posix_src, posix_dest, mtime=False):
             # if os.path.exists(posix_dest) and only_sync is True:
-            r.logger.info('Source and destination do not differ')
+            r.logger.debug('Source and destination do not differ for {}'.format(os.path.basename(posix_src)))
         else:
-            r.logger.info('Copying {}'.format(posix_src))
+            r.logger.info('Copying {}'.format(os.path.basename(posix_src)))
             copyfile(r, posix_src, posix_dest, ag_uri)
             routemsg(r, ag_uri)
     else:
@@ -154,7 +154,7 @@ def main():
                         r.logger.debug('Processing {} with task {}'.format(
                             procpath, resp['executionId']))
                 else:
-                    r.logger.debug('Source and destination do not differ.')
+                    r.logger.debug('Source and destination do not differ for {}'.format(os.path.basename(procpath)))
             except Exception as exc:
                 r.logger.critical(
                     'Failed to dispatch task for {}'.format(ag_full_relpath))
