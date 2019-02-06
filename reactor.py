@@ -73,7 +73,7 @@ def main():
 
     def cmpfiles(posix_src, posix_dest, mtime=True, size=True, cksum=False):
         # Existence
-        if not (os.path.exists(posix_dest) and os.path.exists(posix_src)):
+        if (not os.path.exists(posix_src) or not os.path.exists(posix_dest)):
             print('EXISTENCE')
             return False
 
