@@ -13,6 +13,7 @@ from time import sleep
 from random import random, shuffle
 from attrdict import AttrDict
 from datetime import datetime, timedelta
+from agavepy.agave import AgaveError
 
 from datacatalog.agavehelpers import AgaveHelper, AgaveHelperException
 
@@ -140,7 +141,12 @@ def main():
                                'generated_by': generated_by,
                                'sync': only_sync}
                     if r.local is False:
-                        resp = r.send_message(actor_id, message, retryMaxAttempts=3)
+                        try:
+                            resp = r.send_message(
+                                actor_id, message, retryMaxAttempts=3,
+                                ignoreErrors=False)
+                        except Exception as lexc:
+                            raise AgaveError('Unable to message self')
                     else:
                         pprint(message)
                     batch_sub += 1
@@ -157,7 +163,7 @@ def main():
                     r.logger.debug('Source and destination do not differ for {}'.format(os.path.basename(procpath)))
             except Exception as exc:
                 r.logger.critical(
-                    'Failed to dispatch task for {}'.format(ag_full_relpath))
+                    'Failed dispatching task for {}: {}'.format(ag_full_relpath, exc))
 
 
 if __name__ == '__main__':
