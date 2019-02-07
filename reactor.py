@@ -73,8 +73,12 @@ def main():
 
     def cmpfiles(posix_src, posix_dest, mtime=True, size=True, cksum=False):
         # Existence
-        if (not os.path.exists(posix_src) or not os.path.exists(posix_dest)):
-            print('EXISTENCE')
+        if not os.path.exists(posix_dest):
+            print('DESTINATION.MISSING')
+            return False
+
+        if not os.path.exists(posix_src):
+            print('SOURCE.MISSING')
             return False
 
         # Both files exist, so harvest POSIX stat

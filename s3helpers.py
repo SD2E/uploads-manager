@@ -1,14 +1,13 @@
 
+import sys
+import os
+import re
+from builtins import *
 from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
-from builtins import *
-
-import re
-import os
-import sys
 
 
 class S3HelperException(Exception):
@@ -89,8 +88,10 @@ class S3Helper(object):
         print('EXISTS?', self.mapped_catalog_path(path))
         try:
             if os.path.exists(self.mapped_catalog_path(path, bucket)):
+                print('  TRUE')
                 return True
             else:
+                print('  FALSE')
                 return False
         except Exception as exc:
             raise S3HelperException('Function failed', exc)
@@ -103,8 +104,10 @@ class S3Helper(object):
             testpath = self.mapped_catalog_path(path, bucket)
             print('ISFILE?', self.mapped_catalog_path(path))
             if os.path.exists(testpath) and os.path.isfile(testpath):
+                print('  TRUE')
                 return True
             else:
+                print('  FALSE')
                 return False
         except Exception as exc:
             raise S3HelperException('Function failed', exc)
@@ -116,8 +119,10 @@ class S3Helper(object):
         try:
             testpath = self.mapped_catalog_path(path, bucket)
             if os.path.exists(testpath) and os.path.isdir(testpath):
+                print('  TRUE')
                 return True
             else:
+                print('  FALSE')
                 return False
         except Exception as exc:
             raise S3HelperException('Function failed', exc)
