@@ -72,6 +72,7 @@ def main():
     print('POSIX_DEST:', posix_dest)
 
     def cmpfiles(posix_src, posix_dest, mtime=True, size=True, cksum=False):
+
         # Existence
         if not os.path.exists(posix_dest):
             print('DESTINATION.MISSING')
@@ -81,7 +82,7 @@ def main():
             print('SOURCE.MISSING')
             return False
 
-        # Both files exist, so harvest POSIX stat
+        # Both files exist, so read in POSIX stat
         stat_src = os.stat(posix_src)
         stat_dest = os.stat(posix_dest)
 
@@ -110,35 +111,36 @@ def main():
         # None of the False tests returned so we can safely return True
         return True
 
-    # Is the source physically a FILE and is it different or absent at target?
+    # Is the source physically a FILE?
     if sh.isfile(posix_src):
-        # Check existence and identify
+        # If in sync mode, check if source and destination differ
         if only_sync is True and cmpfiles(posix_src, posix_dest, mtime=False):
             # if os.path.exists(posix_dest) and only_sync is True:
             r.logger.debug('Source and destination do not differ for {}'.format(os.path.basename(posix_src)))
         else:
+            # Not in sync mode - force overwrite destination with source
             r.logger.info('Copying {}'.format(os.path.basename(posix_src)))
             copyfile(r, posix_src, posix_dest, ag_uri)
             routemsg(r, ag_uri)
     else:
-        # LIST DIR; FIRE OFF TASKS FOR FILES
+        # It's a directory. Recurse through it and launch file messages to self
         r.logger.debug('Listing {}'.format(posix_src))
         to_process = sh.listdir(posix_src, recurse=True, bucket=s3_bucket, directories=False)
         pprint(to_process)
-        r.logger.info('Found {} potential sync targets'.format(len(to_process)))
-        r.logger.debug('Messaging self with sync tasks')
+        r.logger.info('Found {} synchronization targets'.format(len(to_process)))
+        r.logger.debug('Messaging self with synchronization tasks')
 
-        # to_list was constructed in listing order, recursively; adding a shuffle
+        # List to_list is constructed in POSIX ls order. Adding a shuffle
         # spreads the processing evenly over all files
         shuffle(to_process)
         batch_sub = 0
         for procpath in to_process:
             try:
-                # Implements sync behavior
+                # Here is the meat of the directory syncing behavior
                 posix_src = sh.mapped_catalog_path(procpath)
                 posix_dest = ah.mapped_posix_path(os.path.join('/', procpath))
                 if (only_sync is False or cmpfiles(posix_src, posix_dest, mtime=False) is False):
-                    r.logger.debug('Try to launch task for {}'.format(procpath))
+                    r.logger.debug('Launching task for {}'.format(procpath))
                     actor_id = r.uid
                     resp = dict()
                     message = {'uri': 's3://' + '/' + procpath,
@@ -149,25 +151,32 @@ def main():
                             resp = r.send_message(
                                 actor_id, message, retryMaxAttempts=3,
                                 ignoreErrors=False)
+                            if 'executionId' in resp:
+                                r.logger.info('Task for {} is {}'.format(
+                                    procpath, resp['executionId']))
+                            else:
+                                raise AgaveError(
+                                    'Task for {} not submitted'.format(procpath))
                         except Exception as lexc:
                             raise AgaveError('Unable to message self')
                     else:
                         pprint(message)
+
                     batch_sub += 1
+                    # Always sleep a little bit between task submissions
+                    sleep(random() * r.settings.batch.task_sleep_duration)
+                    # Sleep a little longer every N submissions
                     if batch_sub > r.settings.batch.size:
                         batch_sub = 0
                         if r.settings.batch.randomize_sleep:
                             sleep(random() * r.settings.batch.sleep_duration)
                         else:
                             sleep(r.settings.batch.sleep_duration)
-                    if 'executionId' in resp:
-                        r.logger.debug('Processing {} with task {}'.format(
-                            procpath, resp['executionId']))
                 else:
                     r.logger.debug('Source and destination do not differ for {}'.format(os.path.basename(procpath)))
             except Exception as exc:
                 r.logger.critical(
-                    'Failed dispatching task for {}: {}'.format(ag_full_relpath, exc))
+                    'Failed to dispatch task to self'.format(ag_full_relpath, exc))
 
 
 if __name__ == '__main__':
