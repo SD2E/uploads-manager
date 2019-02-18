@@ -12,11 +12,16 @@ destination:
 routings:
   capture-fixity:
     - "."
+  capture-fixity-v2:
+    - "."
   etl-pipeline-support:
     - ".json$"
 linked_reactors:
   capture-fixity:
-    id: EqvOPJoZB5wEV
+    id: qe5ev4l0yAkyJ
+    ignore_err: false
+  capture-fixity-v2:
+    id: rZqRDGpzDEkgJ
     ignore_err: false
   etl-pipeline-support:
     id: 6rgbzrjRKoBDk
