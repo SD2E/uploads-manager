@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from agavepy.agave import AgaveError
 
 from datacatalog.agavehelpers import AgaveHelper, AgaveHelperException
+from datacatalog.utils import safen_path
 
 from reactors.runtime import Reactor, agaveutils, process
 from agavehelpers import resilient_files_pems
@@ -60,7 +61,18 @@ def main():
     s3_bucket, srcpath, srcfile = sh.from_s3_uri(s3_uri)
     print(s3_bucket, srcpath, srcfile)
     s3_full_relpath = os.path.join(s3_bucket, srcpath, srcfile)
-    ag_full_relpath = s3_full_relpath
+    if r.settings.safen_paths:
+        ag_full_relpath = safen_path(s3_full_relpath,
+                                     no_unicode=True,
+                                     no_spaces=True,
+                                     url_quote=True)
+        if ag_full_relpath != s3_full_relpath:
+            r.logger.warning(
+                'Transformed original path from {} to {}'.format(
+                    s3_full_relpath, ag_full_relpath))
+    else:
+        ag_full_relpath = s3_full_relpath
+
     ag_uri = 'agave://data-sd2e-community/' + ag_full_relpath
     print(ag_full_relpath, ag_uri)
     posix_src = sh.mapped_catalog_path(s3_full_relpath)

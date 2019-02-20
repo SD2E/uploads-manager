@@ -1,4 +1,5 @@
 ---
+safen_paths: True
 source:
   bucket: s3://uploads
   posix_path: /corral/s3/ingest/uploads
