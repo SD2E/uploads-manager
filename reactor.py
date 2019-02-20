@@ -62,10 +62,10 @@ def main():
     print(s3_bucket, srcpath, srcfile)
     s3_full_relpath = os.path.join(s3_bucket, srcpath, srcfile)
     if r.settings.safen_paths:
+        # Munge out unicode characters on upload. Default for safen_path
+        # also transforms spaces into hyphen character
         ag_full_relpath = safen_path(s3_full_relpath,
-                                     no_unicode=True,
-                                     no_spaces=True,
-                                     url_quote=True)
+                                     no_unicode=True)
         if ag_full_relpath != s3_full_relpath:
             r.logger.warning(
                 'Transformed original path from {} to {}'.format(
