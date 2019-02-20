@@ -65,7 +65,8 @@ def main():
         # Munge out unicode characters on upload. Default for safen_path
         # also transforms spaces into hyphen character
         ag_full_relpath = safen_path(s3_full_relpath,
-                                     no_unicode=True)
+                                     no_unicode=True,
+                                     no_spaces=True)
         if ag_full_relpath != s3_full_relpath:
             r.logger.warning(
                 'Transformed original path from {} to {}'.format(
