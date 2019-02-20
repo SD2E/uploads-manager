@@ -124,7 +124,7 @@ def main():
         return True
 
     # Is the source physically a FILE?
-    if sh.isfile(posix_src):
+    if not sh.isdir(posix_src):
         # If in sync mode, check if source and destination differ
         if only_sync is True and cmpfiles(posix_src, posix_dest, mtime=False):
             # if os.path.exists(posix_dest) and only_sync is True:
