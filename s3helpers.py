@@ -78,13 +78,13 @@ class S3Helper(object):
         if not checkpath.startswith(bucket):
             raise S3HelperException('Path must be absolute and references to storage system root')
 
-        print('EXISTS?', self.mapped_catalog_path(path))
+        print('EXISTS? ', self.mapped_catalog_path(path))
         try:
             if os.path.exists(self.mapped_catalog_path(path, bucket)):
-                print('  TRUE')
+                print('True')
                 return True
             else:
-                print('  FALSE')
+                print('False')
                 return False
         except Exception as exc:
             raise S3HelperException('Function failed', exc)
@@ -95,12 +95,12 @@ class S3Helper(object):
             bucket = self.BUCKET
         try:
             testpath = self.mapped_catalog_path(path, bucket)
-            print('ISFILE?', self.mapped_catalog_path(path))
+            print('ISFILE? ', self.mapped_catalog_path(path))
             if os.path.exists(testpath) and os.path.isfile(testpath):
-                print('  TRUE')
+                print('True')
                 return True
             else:
-                print('  FALSE')
+                print('False')
                 return False
         except Exception as exc:
             raise S3HelperException('Function failed', exc)
@@ -111,12 +111,12 @@ class S3Helper(object):
             bucket = self.BUCKET
         try:
             testpath = self.mapped_catalog_path(path, bucket)
-            print('TESTPATH', testpath)
+            print('ISDIR? ', testpath)
             if os.path.exists(testpath) and os.path.isdir(testpath):
-                print('  TRUE')
+                print('True')
                 return True
             else:
-                print('  FALSE')
+                print('False')
                 return False
         except Exception as exc:
             raise S3HelperException('Function failed', exc)
