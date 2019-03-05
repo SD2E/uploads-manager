@@ -50,6 +50,8 @@ def main():
 
     # Rename m.Key so it makes semantic sense elsewhere in the code
     s3_uri = m.get('uri')
+    if s3_uri.endswith('/'):
+        s3_uri = s3_uri[:-1]
     only_sync = m.get('sync', False)
     generated_by = m.get('generated_by', [])
     r.logger.info('Processing {}'.format(s3_uri))
@@ -81,8 +83,8 @@ def main():
     # agave_full_path = agave_dest
     to_process = []
 
-    print('POSIX_SRC:', posix_src)
-    print('POSIX_DEST:', posix_dest)
+    r.logger.debug('posix_src: {}'.format(posix_src))
+    r.logger.debug('posix_dst: {}'.format(posix_dest))
 
     def cmpfiles(posix_src, posix_dest, mtime=True, size=True, cksum=False):
 
@@ -129,19 +131,19 @@ def main():
         # If in sync mode, check if source and destination differ
         if only_sync is True and cmpfiles(posix_src, posix_dest, mtime=False):
             # if os.path.exists(posix_dest) and only_sync is True:
-            r.logger.debug('Source and destination do not differ for {}'.format(os.path.basename(posix_src)))
+            r.logger.debug('Source == destination for {}'.format(os.path.basename(posix_src)))
         else:
             # Not in sync mode - force overwrite destination with source
-            r.logger.info('Copying {}'.format(os.path.basename(posix_src)))
+            r.logger.info('Source != destination for {}'.format(os.path.basename(posix_src)))
+            print(posix_src, posix_dest, ag_uri)
             copyfile(r, posix_src, posix_dest, ag_uri)
             routemsg(r, ag_uri)
     else:
         # It's a directory. Recurse through it and launch file messages to self
-        r.logger.debug('Listing {}'.format(posix_src))
+        r.logger.debug('Listdir: {}'.format(posix_src))
         to_process = sh.listdir(posix_src, recurse=True, bucket=s3_bucket, directories=False)
         pprint(to_process)
-        r.logger.info('Found {} synchronization targets'.format(len(to_process)))
-        r.logger.debug('Messaging self with synchronization tasks')
+        r.logger.info('Found: {} sync tasks'.format(len(to_process)))
 
         # List to_list is constructed in POSIX ls order. Adding a shuffle
         # spreads the processing evenly over all files
@@ -149,14 +151,17 @@ def main():
         batch_sub = 0
         for procpath in to_process:
             try:
+                print('PROCPATH: ', procpath)
                 # Here is the meat of the directory syncing behavior
                 posix_src = sh.mapped_catalog_path(procpath)
                 posix_dest = ah.mapped_posix_path(os.path.join('/', procpath))
                 if (only_sync is False or cmpfiles(posix_src, posix_dest, mtime=False) is False):
-                    r.logger.debug('Launching task for {}'.format(procpath))
+                    r.logger.debug('Launch: {}'.format(procpath))
                     actor_id = r.uid
                     resp = dict()
-                    message = {'uri': 's3://' + '/' + procpath,
+                    s3_msg_uri = 's3://' + procpath
+                    r.logger.info('s3_uri: {}'.format(s3_msg_uri))
+                    message = {'uri': s3_msg_uri,
                                'generated_by': generated_by,
                                'sync': only_sync}
                     if r.local is False:
@@ -165,13 +170,13 @@ def main():
                                 actor_id, message, retryMaxAttempts=3,
                                 ignoreErrors=False)
                             if 'executionId' in resp:
-                                r.logger.info('Task for {} is {}'.format(
+                                r.logger.info('Task Id for {}: {}'.format(
                                     procpath, resp['executionId']))
                             else:
                                 raise AgaveError(
-                                    'Task for {} not submitted'.format(procpath))
+                                    'Task not submitted for {}'.format(procpath))
                         except Exception as lexc:
-                            raise AgaveError('Unable to message self')
+                            raise AgaveError('Failed to message self')
                     else:
                         pprint(message)
 
@@ -186,10 +191,10 @@ def main():
                         else:
                             sleep(r.settings.batch.sleep_duration)
                 else:
-                    r.logger.debug('Source and destination do not differ for {}'.format(os.path.basename(procpath)))
+                    r.logger.debug('Source == destination for {}'.format(os.path.basename(procpath)))
             except Exception as exc:
                 r.logger.critical(
-                    'Failed to dispatch task to self'.format(ag_full_relpath, exc))
+                    'Failed to dispatch task to self: {}, {}'.format(ag_full_relpath, exc))
 
 
 if __name__ == '__main__':

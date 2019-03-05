@@ -17,7 +17,7 @@ def copyfile(r, posix_src, posix_dest, agave_dest=None):
     try:
         shutil.copy(posix_src, posix_dest)
     except Exception as exc:
-        r.on_failure('Copy to {} failed.'.format(posix_src), exc)
+        r.on_failure('Copy from {} failed.'.format(posix_src), exc)
 
     if agave_dest is not None:
         # Do Agave permission grants on the copied file

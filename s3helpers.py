@@ -111,6 +111,7 @@ class S3Helper(object):
             bucket = self.BUCKET
         try:
             testpath = self.mapped_catalog_path(path, bucket)
+            print('TESTPATH', testpath)
             if os.path.exists(testpath) and os.path.isdir(testpath):
                 print('  TRUE')
                 return True
