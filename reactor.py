@@ -163,11 +163,11 @@ def main():
                     message = {'uri': s3_msg_uri,
                                'generated_by': generated_by,
                                'sync': only_sync}
-                    log_msg = json.dumps(message, sort_keys=True, separators=(',', ':'))
+                    # log_msg = json.dumps(message, sort_keys=True, separators=(',', ':'))
 
                     if r.local is False:
                         try:
-                            r.logger.debug('Message: dest={}, content={}'.format(actor_id, log_msg))
+                            r.logger.debug('Message: dest={}, content={}'.format(actor_id, message))
                             resp = r.send_message(
                                 actor_id, message, retryMaxAttempts=3,
                                 ignoreErrors=False)

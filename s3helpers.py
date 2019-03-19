@@ -96,7 +96,7 @@ class S3Helper(object):
         try:
             testpath = self.mapped_catalog_path(path, bucket)
             print('ISFILE? ', self.mapped_catalog_path(path))
-            if os.path.exists(testpath) and os.path.isfile(testpath):
+            if os.path.isfile(testpath):
                 print('True')
                 return True
             else:
@@ -112,7 +112,7 @@ class S3Helper(object):
         try:
             testpath = self.mapped_catalog_path(path, bucket)
             print('ISDIR? ', testpath)
-            if os.path.exists(testpath) and os.path.isdir(testpath):
+            if os.path.isdir(testpath):
                 print('True')
                 return True
             else:
