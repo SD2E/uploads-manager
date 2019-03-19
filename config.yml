@@ -19,13 +19,16 @@ routings:
     - ".json$"
 linked_reactors:
   capture-fixity:
-    id: qe5ev4l0yAkyJ
+    id: uploads-indexer.v1
     ignore_err: false
   capture-fixity-v2:
-    id: rZqRDGpzDEkgJ
+    id: uploads-indexer.prod
     ignore_err: false
   etl-pipeline-support:
-    id: 6rgbzrjRKoBDk
+    id: metadata-converter.v1
+    ignore_err: false
+  etl-pipeline-support-v2:
+    id: metadata-converter.prod
     ignore_err: false
 logs:
   level: DEBUG
