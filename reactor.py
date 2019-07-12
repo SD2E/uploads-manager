@@ -128,11 +128,10 @@ def main():
         # If in sync mode, check if source and destination differ
         if only_sync is True and cmpfiles(posix_src, posix_dest, mtime=False):
             # if os.path.exists(posix_dest) and only_sync is True:
-            r.logger.debug('Compared: src == dest {}'.format(os.path.basename(posix_src)))
+            r.logger.debug('Compared: src == dest {}, {}'.format(os.path.basename(posix_src, posix_dest)))
         else:
             # Not in sync mode - force overwrite destination with source
-            r.logger.debug('Compared: src != dest {}'.format(os.path.basename(posix_src)))
-            print(posix_src, posix_dest, ag_uri)
+            r.logger.debug('Compared: src != dest {}, {}'.format(os.path.basename(posix_src, posix_dest)))
             copyfile(r, posix_src, posix_dest, ag_uri)
             routemsg(r, ag_uri)
     elif sh.isdir(posix_src):
