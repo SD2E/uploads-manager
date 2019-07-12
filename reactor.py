@@ -186,7 +186,7 @@ def main():
                         else:
                             sleep(r.settings.batch.sleep_duration)
                 else:
-                    r.logger.debug('Copy not required for {}'.format(pro))
+                    r.logger.debug('Copy not required for {}'.format(procpath))
             except Exception as exc:
                 r.logger.error(
                     'Copy failed for {}: {}'.format(ag_full_relpath, exc))
