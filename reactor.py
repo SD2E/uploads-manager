@@ -189,7 +189,7 @@ def main():
                     r.logger.debug('Copy not required for {}'.format(procpath))
             except Exception as exc:
                 r.logger.error(
-                    'Copy failed for {}: {}'.format(ag_full_relpath, exc))
+                    'Copy operation failed for {}: {}'.format(ag_full_relpath, exc))
     else:
         r.on_failure('Process failed and {} was not synced'.format(posix_src))
 
