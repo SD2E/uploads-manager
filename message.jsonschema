@@ -11,7 +11,7 @@
         },
         "sync": {
             "type": "boolean",
-            "value": false
+            "value": true
         },
         "routings": {},
         "generated_by": {

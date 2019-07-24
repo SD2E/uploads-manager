@@ -53,7 +53,7 @@ def main():
     s3_uri = m.get('uri')
     if s3_uri.endswith('/'):
         s3_uri = s3_uri[:-1]
-    only_sync = m.get('sync', False)
+    only_sync = m.get('sync', True)
     generated_by = m.get('generated_by', [])
     r.logger.info('Received S3 URI {}'.format(s3_uri))
 
@@ -71,9 +71,8 @@ def main():
                                      no_unicode=True,
                                      no_spaces=True)
         if ag_full_relpath != s3_full_relpath:
-            r.logger.warning(
-                'Safened path: {} => {}'.format(
-                    s3_full_relpath, ag_full_relpath))
+            r.logger.warning('Safened path: {} => {}'.format(
+                s3_full_relpath, ag_full_relpath))
     else:
         ag_full_relpath = s3_full_relpath
 
@@ -117,7 +116,8 @@ def main():
             # TODO Implement very fast hasher instead of sha256 for sync
             #      1. https://github.com/kalafut/py-imohash
             #      2. https://pypi.org/project/xxhash/
-            raise NotImplementedError('Checksum comparison is not yet implemented')
+            raise NotImplementedError(
+                'Checksum comparison is not yet implemented')
 
         # None of the False tests returned so we can safely return True
         return True
@@ -128,16 +128,21 @@ def main():
         # If in sync mode, check if source and destination differ
         if only_sync is True and cmpfiles(posix_src, posix_dest, mtime=False):
             # if os.path.exists(posix_dest) and only_sync is True:
-            r.logger.debug('Compared: src == dest {}, {}'.format(os.path.basename(posix_src, posix_dest)))
+            r.logger.debug('Compared: src == dest {}, {}'.format(
+                posix_src, posix_dest))
         else:
             # Not in sync mode - force overwrite destination with source
-            r.logger.debug('Compared: src != dest {}, {}'.format(os.path.basename(posix_src, posix_dest)))
+            r.logger.debug('Compared: src != dest {}, {}'.format(
+                posix_src, posix_dest))
             copyfile(r, posix_src, posix_dest, ag_uri)
             routemsg(r, ag_uri)
     elif sh.isdir(posix_src):
         # It's a directory. Recurse through it and launch file messages to self
         r.logger.debug('Directory found: {}'.format(posix_src))
-        to_process = sh.listdir(posix_src, recurse=True, bucket=s3_bucket, directories=False)
+        to_process = sh.listdir(posix_src,
+                                recurse=True,
+                                bucket=s3_bucket,
+                                directories=False)
         pprint(to_process)
         r.logger.info('Sync tasks found: {}'.format(len(to_process)))
 
@@ -151,23 +156,30 @@ def main():
                 # Here is the meat of the directory syncing behavior
                 posix_src = sh.mapped_catalog_path(procpath)
                 posix_dest = ah.mapped_posix_path(os.path.join('/', procpath))
-                if (only_sync is False or cmpfiles(posix_src, posix_dest, mtime=False) is False):
+                if (only_sync is False or
+                        cmpfiles(posix_src, posix_dest, mtime=False) is False):
                     r.logger.info('Copying {}'.format(procpath))
                     actor_id = r.uid
                     resp = dict()
                     s3_msg_uri = 's3://' + procpath
-                    message = {'uri': s3_msg_uri,
-                               'generated_by': generated_by,
-                               'sync': only_sync}
+                    message = {
+                        'uri': s3_msg_uri,
+                        'generated_by': generated_by,
+                        'sync': only_sync
+                    }
 
                     if r.local is False:
                         try:
-                            r.logger.debug('Messaging {} with copy request'.format(actor_id))
-                            resp = r.send_message(
-                                actor_id, message, retryMaxAttempts=3,
-                                ignoreErrors=False)
+                            r.logger.debug(
+                                'Messaging {} with copy request'.format(
+                                    actor_id))
+                            resp = r.send_message(actor_id,
+                                                  message,
+                                                  retryMaxAttempts=3,
+                                                  ignoreErrors=False)
                             if 'executionId' in resp:
-                                r.logger.info('Message response: {}'.format(resp['executionId']))
+                                r.logger.info('Message response: {}'.format(
+                                    resp['executionId']))
                             else:
                                 raise AgaveError('Message failed')
                         except Exception:
@@ -188,8 +200,8 @@ def main():
                 else:
                     r.logger.debug('Copy not required for {}'.format(procpath))
             except Exception as exc:
-                r.logger.error(
-                    'Copy operation failed for {}: {}'.format(ag_full_relpath, exc))
+                r.logger.error('Copy operation failed for {}: {}'.format(
+                    ag_full_relpath, exc))
     else:
         r.on_failure('Process failed and {} was not synced'.format(posix_src))
 
