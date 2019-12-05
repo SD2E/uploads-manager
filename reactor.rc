@@ -1,11 +1,10 @@
 # Reactor
-REACTOR_NAME=copy-s3-uploads
+REACTOR_NAME=s3-uploads-manager
 REACTOR_DESCRIPTION="Handles file staging for /uploads"
-REACTOR_ALIAS=copy-s3-uploads
-REACTOR_STATELESS=1
+REACTOR_ALIAS=uploads-manager
 
 # Docker image
 DOCKER_HUB_ORG=sd2e
-DOCKER_IMAGE_TAG=copy-s3-uploads
-DOCKER_IMAGE_VERSION=0.4.0
+DOCKER_IMAGE_TAG=s3-uploads-manager
+DOCKER_IMAGE_VERSION=0.4.1
 DOCKER_USE_COMMIT_HASH=1
